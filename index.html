@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diabetic Retinopathy Diagnosis</title>
+    <!-- Include marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            /* Center the main title */
+        }
+
+        form {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+
+        input,
+        textarea,
+        select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        /* Updated styles for report */
+        .report-container {
+            background: white;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            max-width: 600px;
+            margin: 20px auto;
+            line-height: 1.6;
+        }
+
+        .report-container h2,
+        .report-container h3 {
+            color: #333;
+        }
+
+        .report-container p,
+        .report-container li {
+            color: #555;
+            margin: 0.5em 0;
+        }
+
+        .report-container strong {
+            color: black;
+        }
+
+        /* Styles for Patient Details and Diagnosis */
+        .patient-details,
+        .diagnosis {
+            margin-bottom: 1.5em;
+        }
+
+        .patient-details p,
+        .diagnosis p {
+            margin: 0.3em 0;
+            padding-left: 10px;
+        }
+
+        .error {
+            color: red;
+            background: #f9f9f9;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            max-width: 600px;
+            margin: 20px auto;
+        }
+
+        img {
+            max-width: 300px;
+            margin: 10px auto;
+            display: block;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        /* Center Generated Report and Uploaded Image headings */
+        h2,
+        h3 {
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Diabetic Retinopathy Diagnosis Interface</h1>
+    <form method="POST" enctype="multipart/form-data">
+        <label for="name">Patient Name:</label>
+        <input type="text" id="name" name="name" value="{{ form_data.name }}" required>
+
+        <label for="age">Age:</label>
+        <input type="text" id="age" name="age" value="{{ form_data.age }}" required>
+
+        <label for="gender">Gender:</label>
+        <select id="gender" name="gender" required>
+            <option value="" disabled {% if not form_data.gender %}selected{% endif %}>Select Gender</option>
+            <option value="Male" {% if form_data.gender=="Male" %}selected{% endif %}>Male</option>
+            <option value="Female" {% if form_data.gender=="Female" %}selected{% endif %}>Female</option>
+            <option value="Other" {% if form_data.gender=="Other" %}selected{% endif %}>Other</option>
+        </select>
+
+        <label for="medical_history">Medical History:</label>
+        <textarea id="medical_history" name="medical_history" required>{{ form_data.medical_history }}</textarea>
+
+        <label for="image">Retinal Image:</label>
+        <input type="file" id="image" name="image" accept="image/*" required>
+
+        <button type="submit">Generate Report</button>
+    </form>
+
+    {% if report %}
+    <h2>Generated Report</h2>
+    {% if "Error" in report %}
+    <div class="error">{{ report }}</div>
+    {% else %}
+    {% if image_path %}
+    <p style="text-align:center">Uploaded Retinal Image:</p>
+    <img src="{{ url_for('static', filename=image_path) }}" alt="Uploaded Retinal Image">
+    {% endif %}
+    <!-- Div for rendered HTML, moved after image -->
+    <div id="report" class="report-container"></div>
+    <!-- Hidden textarea to store raw report -->
+    <textarea id="raw-report" style="display: none;">{{ report | e }}</textarea>
+    {% endif %}
+    {% endif %}
+
+    <!-- JavaScript to render report -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const rawReport = document.getElementById('raw-report');
+            const reportDiv = document.getElementById('report');
+            if (rawReport && reportDiv) {
+                // Get raw report text
+                const rawText = rawReport.value;
+
+                // Split into sections based on double newlines
+                const sections = rawText.split('\n\n');
+                let htmlOutput = '';
+
+                sections.forEach(section => {
+                    if (section.startsWith('Patient Details:') || section.startsWith('Diagnosis:')) {
+                        // Split section into lines and wrap each in a <p> tag
+                        const lines = section.split('\n').filter(line => line.trim());
+                        const className = section.startsWith('Patient Details:') ? 'patient-details' : 'diagnosis';
+                        htmlOutput += `<div class="${className}">${lines.map(line => `<p>${line}</p>`).join('')}</div>`;
+                    } else {
+                        // Render Medical Report section with Markdown
+                        htmlOutput += marked.parse(section);
+                    }
+                });
+
+                // Set the rendered HTML
+                reportDiv.innerHTML = htmlOutput;
+            }
+        });
+    </script>
+</body>
+
+</html>
